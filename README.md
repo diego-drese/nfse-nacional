@@ -10,6 +10,10 @@ schemas da Receita, assina com o certificado A1, emite, consulta, cancela e baix
 - **Sem regra de negócio.** O pacote só fala com a NFS-e Nacional. Quando emitir, numeração da DPS, alíquota do mês, retenção
   de nota etc. ficam no seu sistema.
 
+> ⚠️ **Projeto desenvolvido inteiramente por IA** (Claude, da Anthropic), sob a orientação de um desenvolvedor humano.
+> **Use por sua conta e risco**: não há garantia de nenhum tipo, e nota fiscal tem efeito fiscal real. Teste em homologação
+> antes de produção. Não há suporte: se quiser mudar algo, faça seu fork e siga feliz.
+
 > Leiaute **1.01** da DPS. Testado contra os schemas oficiais; a homologação na Sefin depende de um certificado A1 real da
 > sua empresa (veja [Homologação](#homologação-produção-restrita)).
 
@@ -159,7 +163,30 @@ lá, confira o PDF e o XML, e só então troque para `Environment::Producao`.
 - ISS tributável no município do prestador, sem retenção; sem deduções, descontos, obra, evento ou intermediário.
 - Sem IBS/CBS (grupo opcional no leiaute 1.01). Sem substituição de nota (só cancelamento).
 
-Contribuições são bem-vindas para cobrir esses casos.
+Pull requests podem ser olhados, mas não há compromisso de manutenção: o caminho certo para o seu caso é o fork.
+
+## Por que este pacote existe
+
+Ele nasceu dentro de um sistema de gestão para escritórios de radiodifusão que precisava emitir a NFS-e das mensalidades, e
+foi separado para ser usado em outros projetos que também emitem nota: o que muda entre eles são as regras **antes** de
+emitir; a conversa com a NFS-e Nacional é sempre a mesma.
+
+A referência foi o **[nfse-nacional/nfse-php](https://github.com/nfse-nacional/nfse-php)** (MIT), um SDK bem mais completo
+(contribuinte e município, distribuição de DF-e, parâmetros municipais, IBS/CBS). Ele não serviu diretamente porque:
+
+- exige o **Guzzle 7**, e projetos em Laravel recentes já usam o Guzzle 8: instalar obrigaria rebaixar o cliente HTTP do
+  projeto inteiro;
+- ainda está em versão **beta** e depende do `spatie/data-transfer-object`, que foi **abandonado**;
+- o SeadV2 precisava de pouca coisa (emitir, consultar, cancelar, PDF) e de **diagnóstico fácil** quando algo der errado.
+
+Daqui vieram os schemas oficiais (XSD), a lógica da assinatura XML e os endereços da Sefin/ADN. O resto foi escrito do zero,
+sem dependências além das extensões do PHP. Se você precisa de algo que este pacote não cobre, o `nfse-php` provavelmente
+cobre.
+
+## Desenvolvimento
+
+Arquitetura, fluxo de uma emissão, como rodar os testes, como incluir um campo da DPS e como atualizar o leiaute:
+[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ## Testes
 
@@ -170,6 +197,9 @@ composer test
 
 Os testes geram um certificado autoassinado na hora e simulam a Sefin pelo `Transport`. Nenhuma chamada sai para a internet.
 
-## Licença
+## Licença e aviso
 
 MIT. A assinatura XML foi adaptada do [nfse-nacional/nfse-php](https://github.com/nfse-nacional/nfse-php) (MIT).
+
+Código escrito por IA (Claude, Anthropic). O software é fornecido "como está", sem garantia; quem usa assume a
+responsabilidade pelas notas emitidas. Confira sempre em homologação e com o seu contador.

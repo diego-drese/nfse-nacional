@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (2026-11-13)
+
+- Corrige o cancelamento no PHP 8.2 (`mb_str_pad` só existe no 8.3).
+- README: aviso de projeto feito por IA (uso por conta e risco), a referência (nfse-nacional/nfse-php) e o porquê do
+  pacote; guia de desenvolvimento em `docs/DESENVOLVIMENTO.md`.
+
 ## 0.1.0 (2026-11-13)
 
 Primeira versão.

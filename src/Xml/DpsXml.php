@@ -117,7 +117,9 @@ final class DpsXml
         $e = self::add($dom, $inf, 'e101101');
         self::add($dom, $e, 'xDesc', 'Cancelamento de NFS-e');
         self::add($dom, $e, 'cMotivo', (string) $code);
-        self::add($dom, $e, 'xMotivo', self::text(mb_str_pad($reason, 15, '.'), 255));
+        // O motivo exige 15+ caracteres: completa com pontos (mb_str_pad só existe no PHP 8.3).
+        $reason = trim($reason);
+        self::add($dom, $e, 'xMotivo', self::text($reason.str_repeat('.', max(0, 15 - mb_strlen($reason))), 255));
 
         return (string) $dom->saveXML();
     }
