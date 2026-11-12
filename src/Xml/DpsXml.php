@@ -7,6 +7,8 @@ namespace DiegoDrese\NfseNacional\Xml;
 use DateTimeImmutable;
 use DateTimeZone;
 use DiegoDrese\NfseNacional\Dps\Dps;
+use DiegoDrese\NfseNacional\Dps\IbsCbs;
+use DiegoDrese\NfseNacional\Dps\Reimbursement;
 use DiegoDrese\NfseNacional\Environment;
 use DOMDocument;
 use DOMElement;
@@ -97,7 +99,73 @@ final class DpsXml
             ? self::add($dom, $tot, 'pTotTribSN', number_format($r->simplesTotalRate, 2, '.', ''))
             : self::add($dom, $tot, 'indTotTrib', '0');
 
+        if ($r->ibsCbs !== null) {
+            self::ibsCbs($dom, $inf, $r->ibsCbs);
+        }
+
         return (string) $dom->saveXML();
+    }
+
+    /** Grupo IBS/CBS (reforma tributária), na ordem do TCRTCInfoIBSCBS. */
+    private static function ibsCbs(DOMDocument $dom, DOMElement $inf, IbsCbs $t): void
+    {
+        $g = self::add($dom, $inf, 'IBSCBS');
+        self::add($dom, $g, 'finNFSe', '0');
+        if ($t->finalConsumer) {
+            self::add($dom, $g, 'indFinal', '1');
+        }
+        self::add($dom, $g, 'cIndOp', $t->operationIndicator);
+        if ($t->operationType !== null) {
+            self::add($dom, $g, 'tpOper', (string) $t->operationType);
+        }
+        if ($t->governmentEntity !== null) {
+            self::add($dom, $g, 'tpEnteGov', (string) $t->governmentEntity);
+        }
+        self::add($dom, $g, 'indDest', '0');
+        $values = self::add($dom, $g, 'valores');
+        if ($t->reimbursements !== []) {
+            $list = self::add($dom, $values, 'gReeRepRes');
+            foreach ($t->reimbursements as $item) {
+                self::reimbursement($dom, self::add($dom, $list, 'documentos'), $item);
+            }
+        }
+        $cls = self::add($dom, self::add($dom, $values, 'trib'), 'gIBSCBS');
+        self::add($dom, $cls, 'CST', $t->cst);
+        self::add($dom, $cls, 'cClassTrib', $t->classification);
+    }
+
+    private static function reimbursement(DOMDocument $dom, DOMElement $doc, Reimbursement $r): void
+    {
+        if ($r->dfeKey !== null) {
+            $dfe = self::add($dom, $doc, 'dFeNacional');
+            self::add($dom, $dfe, 'tipoChaveDFe', (string) $r->dfeKey['type']);
+            if (! empty($r->dfeKey['description'])) {
+                self::add($dom, $dfe, 'xTipoChaveDFe', self::text((string) $r->dfeKey['description'], 255));
+            }
+            self::add($dom, $dfe, 'chaveDFe', (string) preg_replace('/\D/', '', $r->dfeKey['key']));
+        } elseif ($r->municipalDocument !== null) {
+            $m = self::add($dom, $doc, 'docFiscalOutro');
+            self::add($dom, $m, 'cMunDocFiscal', $r->municipalDocument['city']);
+            self::add($dom, $m, 'nDocFiscal', self::text($r->municipalDocument['number'], 255));
+            self::add($dom, $m, 'xDocFiscal', self::text($r->municipalDocument['description'], 255));
+        } else {
+            $o = self::add($dom, $doc, 'docOutro');
+            self::add($dom, $o, 'nDoc', self::text((string) ($r->otherDocument['number'] ?? ''), 255));
+            self::add($dom, $o, 'xDoc', self::text((string) ($r->otherDocument['description'] ?? ''), 255));
+        }
+        if ($r->supplier !== null) {
+            $f = self::add($dom, $doc, 'fornec');
+            $d = (string) preg_replace('/\D/', '', $r->supplier['document']);
+            self::add($dom, $f, strlen($d) === 11 ? 'CPF' : 'CNPJ', $d);
+            self::add($dom, $f, 'xNome', self::text($r->supplier['name'], 150));
+        }
+        self::add($dom, $doc, 'dtEmiDoc', $r->issuedOn->format('Y-m-d'));
+        self::add($dom, $doc, 'dtCompDoc', $r->competenceOn->format('Y-m-d'));
+        self::add($dom, $doc, 'tpReeRepRes', $r->type);
+        if (! empty($r->typeDescription)) {
+            self::add($dom, $doc, 'xTpReeRepRes', self::text($r->typeDescription, 150));
+        }
+        self::add($dom, $doc, 'vlrReeRepRes', number_format($r->amount, 2, '.', ''));
     }
 
     /** Pedido de registro do evento de cancelamento (101101). */

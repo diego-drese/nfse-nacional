@@ -99,6 +99,51 @@ $result = $sefin->cancel($accessKey, cnpj: '11222333000181', code: 1, reason: 'V
 O ISS sai como tributável no município do prestador, sem retenção (`tribISSQN = 1`, `tpRetISSQN = 1`). Outros cenários
 (retenção, exportação, imunidade, deduções, IBS/CBS) ainda não estão no `DpsXml`: veja [Limitações](#limitações).
 
+## Reforma tributária: IBS e CBS
+
+O leiaute 1.01 tem o grupo opcional **IBSCBS**. Na DPS vai só a **classificação** da operação; **alíquotas e valores quem
+calcula é o sistema nacional**, e a nota volta com eles. Então o seu sistema não precisa manter tabela de alíquota de
+IBS/CBS para emitir, só classificar cada serviço.
+
+```php
+use DiegoDrese\NfseNacional\Dps\{IbsCbs, Reimbursement};
+
+$dps = new Dps(
+    // ... os mesmos campos de antes ...
+    nbs: '112011000',                 // com IBS/CBS, o NBS do serviço é obrigatório
+    ibsCbs: new IbsCbs(
+        operationIndicator: '010101', // cIndOp: tabela "código indicador de operação"
+        cst: '000',                   // situação tributária do IBS/CBS
+        classification: '000001',     // cClassTrib: classificação tributária
+        reimbursements: [             // opcional: valores de terceiros, fora da base do IBS/CBS
+            new Reimbursement(
+                type: '99',           // 99 = outros reembolsos por conta e ordem de terceiro
+                amount: 120.00,
+                issuedOn: new DateTimeImmutable('2026-11-05'),
+                competenceOn: new DateTimeImmutable('2026-11-01'),
+                dfeKey: ['type' => 1, 'key' => '<chave de 50 dígitos da NFS-e do fornecedor>'],
+                supplier: ['document' => '55.666.777/0001-88', 'name' => 'Fornecedor Ltda'],
+                typeDescription: 'Repasse do serviço contratado por conta e ordem do cliente',
+            ),
+        ],
+    ),
+);
+
+$result = $sefin->issue($dps);
+$result->ibsCbs;   // ['base' => 649.0, 'ibs' => 0.65, 'cbs' => 5.84, 'total' => 799.0, 'cbs_rate' => 0.9, ...]
+```
+
+- **Quem precisa informar e quando** depende do regime da empresa e do calendário da reforma (2026 é o ano de teste).
+  Confirme com o seu contador.
+- **Os códigos** (`cIndOp`, `CST`, `cClassTrib`) vêm das tabelas oficiais da reforma e dependem do serviço. Guarde-os no
+  cadastro do **serviço/produto** do seu sistema, com data de vigência, em vez de fixar na empresa.
+- **Repasse/reembolso** precisa do documento do fornecedor: chave de NFS-e/NF-e/CT-e, nota municipal (`municipalDocument`) ou
+  outro documento (`otherDocument`). A soma dos repasses não pode passar do valor do serviço.
+- **A NFS-e não tem itens**: é um serviço por nota. Serviços com classificação diferente viram notas separadas.
+
+Antes de enviar, o pacote confere regras que o schema não pega (`DpsRules`: NBS obrigatório com IBS/CBS, documento do repasse,
+soma dos repasses...) e devolve `rejected` com código `REGRA` e a explicação, sem chamar a Sefin.
+
 ## Certificado A1
 
 ```php
@@ -119,7 +164,8 @@ cada chamada.
 
 Quando algo dá errado, olhe nesta ordem:
 
-1. **`$result->errors` com código `XSD`**: a DPS não passou no schema oficial; nada foi enviado. A mensagem diz o campo e a
+1. **`$result->errors` com código `REGRA`**: alguma regra da DPS que o schema não confere (ex.: NBS com IBS/CBS); nada foi
+   enviado. **Código `XSD`**: a DPS não passou no schema oficial; nada foi enviado. A mensagem diz o campo e a
    regra (ex.: `Element 'cTribNac': [facet 'pattern'] The value '01030' is not accepted by the pattern '[0-9]{6}'`).
 2. **`CERT`**: certificado vencido.
 3. **Código da Sefin** (`E0xxx`): o dado está no formato certo, mas a Sefin recusou (série/número repetido, município não
@@ -161,7 +207,8 @@ lá, confira o PDF e o XML, e só então troque para `Environment::Producao`.
 
 - Prestador pessoa jurídica (CNPJ). Tomador com endereço nacional (sem exterior).
 - ISS tributável no município do prestador, sem retenção; sem deduções, descontos, obra, evento ou intermediário.
-- Sem IBS/CBS (grupo opcional no leiaute 1.01). Sem substituição de nota (só cancelamento).
+- IBS/CBS: classificação, consumo final, compras governamentais e repasses; ainda sem diferimento, crédito presumido,
+  tributação regular (`gTribRegular`), destinatário diferente do tomador e imóvel. Sem substituição de nota (só cancelamento).
 
 Pull requests podem ser olhados, mas não há compromisso de manutenção: o caminho certo para o seu caso é o fork.
 

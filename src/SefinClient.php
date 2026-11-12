@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DiegoDrese\NfseNacional\Dps\Dps;
 use DiegoDrese\NfseNacional\Http\CurlTransport;
 use DiegoDrese\NfseNacional\Http\Transport;
+use DiegoDrese\NfseNacional\Xml\DpsRules;
 use DiegoDrese\NfseNacional\Xml\DpsXml;
 use DiegoDrese\NfseNacional\Xml\SchemaValidator;
 use DiegoDrese\NfseNacional\Xml\XmlSigner;
@@ -38,6 +39,9 @@ final class SefinClient
     {
         if ($this->certificate->expired()) {
             return new Result('rejected', errors: [['code' => 'CERT', 'message' => 'O certificado A1 venceu em '.$this->certificate->validUntil()->format('d/m/Y').'.']]);
+        }
+        if (($broken = DpsRules::errors($dps)) !== []) {
+            return new Result('rejected', errors: array_map(fn ($m) => ['code' => 'REGRA', 'message' => $m], $broken));
         }
         $signed = (new XmlSigner($this->certificate))->sign(DpsXml::dps($dps), 'infDPS');
         if (($invalid = SchemaValidator::errors($signed, SchemaValidator::DPS)) !== []) {
@@ -92,7 +96,7 @@ final class SefinClient
             $xml = isset($json['nfseXmlGZipB64']) ? (string) gzdecode((string) base64_decode((string) $json['nfseXmlGZipB64'])) : null;
 
             return new Result('issued', accessKey: (string) $json['chaveAcesso'], number: $xml !== null && preg_match('/<nNFSe>(\d+)<\/nNFSe>/', $xml, $m) ? $m[1] : null,
-                nfseXml: $xml, sentXml: $sent, httpStatus: $status, response: $body);
+                nfseXml: $xml, sentXml: $sent, httpStatus: $status, response: $body, ibsCbs: $xml !== null ? self::ibsCbs($xml) : null);
         }
         if ($status === 0 || $status === 429 || $status >= 500) {
             return new Result('unavailable', errors: $errors ?: [['code' => (string) $status, 'message' => $status === 0 ? 'Sem resposta da Sefin Nacional.' : "A Sefin Nacional respondeu {$status}."]],
@@ -100,6 +104,28 @@ final class SefinClient
         }
 
         return new Result('rejected', errors: $errors ?: [['code' => (string) $status, 'message' => 'A Sefin Nacional recusou sem detalhar o motivo.']], sentXml: $sent, httpStatus: $status, response: $body);
+    }
+
+    /**
+     * Valores de IBS/CBS calculados pelo sistema nacional e devolvidos na NFS-e (só quando a DPS levou o grupo IBSCBS).
+     *
+     * @return array{base: float, ibs: float, cbs: float, total: float, cbs_rate: ?float, ibs_state_rate: ?float, ibs_city_rate: ?float, city: ?string}|null
+     */
+    public static function ibsCbs(string $nfseXml): ?array
+    {
+        $dom = new \DOMDocument;
+        if (! @$dom->loadXML($nfseXml)) {
+            return null;
+        }
+        $xp = new \DOMXPath($dom);
+        $v = fn (string $name) => ($n = $xp->query("//*[local-name()='IBSCBS']//*[local-name()='{$name}']")->item(0)) !== null ? $n->textContent : null;
+        if ($v('vBC') === null) {
+            return null;
+        }
+
+        return ['base' => (float) $v('vBC'), 'ibs' => (float) $v('vIBSTot'), 'cbs' => (float) $v('vCBS'), 'total' => (float) $v('vTotNF'),
+            'cbs_rate' => ($r = $v('pAliqEfetCBS')) !== null ? (float) $r : null, 'ibs_state_rate' => ($r = $v('pAliqEfetUF')) !== null ? (float) $r : null,
+            'ibs_city_rate' => ($r = $v('pAliqEfetMun')) !== null ? (float) $r : null, 'city' => $v('xLocalidadeIncid')];
     }
 
     /** @return array{0: int, 1: string} status HTTP (0 = sem resposta) e corpo */

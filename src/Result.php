@@ -6,7 +6,7 @@ namespace DiegoDrese\NfseNacional;
 
 /**
  * Resultado de uma chamada à NFS-e Nacional, com tudo o que serve para diagnóstico: o XML enviado, o status HTTP e a resposta
- * crua. `status`: `issued` (feito; na emissão traz a chave e o XML da nota), `rejected` (erro de dado: corrigir antes de
+ * crua (e, com a reforma, os valores de IBS/CBS que a Sefin calculou). `status`: `issued` (feito; na emissão traz a chave e o XML da nota), `rejected` (erro de dado: corrigir antes de
  * reenviar; `errors` diz o quê) ou `unavailable` (sem resposta ou erro do servidor: tentar de novo é seguro).
  */
 final readonly class Result
@@ -21,6 +21,8 @@ final readonly class Result
         public ?string $sentXml = null,
         public int $httpStatus = 0,
         public ?string $response = null,
+        /** IBS/CBS calculados pelo sistema nacional (base, ibs, cbs, total e alíquotas efetivas), quando a DPS levou o grupo. */
+        public ?array $ibsCbs = null,
     ) {}
 
     public function ok(): bool

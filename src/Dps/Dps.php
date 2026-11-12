@@ -10,7 +10,8 @@ use DiegoDrese\NfseNacional\Environment;
 /**
  * Declaração de Prestação de Serviço (o pedido da NFS-e). `tribNac` é o código de tributação nacional (6 dígitos, LC 116:
  * 01.03.01 → 010301). `issRate` é a alíquota de ISS (Simples: muda todo mês); `simplesTotalRate`, o percentual total do
- * Simples para o "valor aproximado dos tributos" (sem ele, a DPS informa que não declara).
+ * Simples para o "valor aproximado dos tributos" (sem ele, a DPS informa que não declara). `ibsCbs` (opcional): a
+ * classificação da reforma tributária e os repasses; com ele, `nbs` é obrigatório.
  */
 final readonly class Dps
 {
@@ -28,6 +29,7 @@ final readonly class Dps
         public ?float $issRate = null,
         public ?float $simplesTotalRate = null,
         public ?string $nbs = null,
+        public ?IbsCbs $ibsCbs = null,
     ) {}
 
     /** Id: "DPS" + município (7) + tipo de inscrição (2 = CNPJ) + CNPJ (14) + série (5) + número (15). */

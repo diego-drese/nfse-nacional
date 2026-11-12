@@ -11,10 +11,11 @@ responsabilidade e nenhum depende de framework.
 src/
   Environment.php          Produção × homologação (tpAmb e endereços da Sefin/ADN)
   Certificate.php          Lê o PFX (com fallback "openssl -legacy"), CNPJ, validade, assina
-  Dps/                     Dados de entrada (imutáveis): Dps, Provider, Taker, Address
+  Dps/                     Dados de entrada (imutáveis): Dps, Provider, Taker, Address, IbsCbs, Reimbursement
   Xml/DpsXml.php           Monta o XML da DPS e do pedido de cancelamento (leiaute 1.01)
   Xml/XmlSigner.php        Assinatura XMLDSig envelopada (C14N, RSA-SHA1)
   Xml/SchemaValidator.php  Valida contra os .xsd oficiais e devolve as mensagens
+  Xml/DpsRules.php         Regras que o schema não pega (manuais da NFS-e), em português
   SefinClient.php          Emitir, consultar pela DPS, cancelar, DANFSe; monta o Result
   Result.php               Resultado com status, erros, XML enviado, HTTP e resposta crua
   Http/Transport.php       Contrato do envio HTTP com TLS mútuo
@@ -30,7 +31,8 @@ tests/                     PHPUnit; Support/ gera certificado de teste e simula 
 2. **XML** (`DpsXml::dps`): elementos na ordem exigida pelo schema, no namespace `http://www.sped.fazenda.gov.br/nfse`.
 3. **Assinatura** (`XmlSigner::sign($xml, 'infDPS')`): resumo SHA-1 do `infDPS` canonizado, `SignedInfo` assinado com a
    chave do A1, certificado no `KeyInfo`. A `Signature` fica irmã do `infDPS`, dentro de `DPS`.
-4. **Validação** (`SchemaValidator`): se o XML assinado não passa no `DPS_v1.01.xsd`, o `SefinClient` devolve `rejected`
+4. **Validação**: primeiro `DpsRules` (regras dos manuais, ex.: NBS obrigatório com IBS/CBS; falha = `rejected` com código
+   `REGRA`), depois o `SchemaValidator`: se o XML assinado não passa no `DPS_v1.01.xsd`, o `SefinClient` devolve `rejected`
    com código `XSD` e **não chama a Sefin**.
 5. **Envio** (`SefinClient::issue`): `POST {sefin}/nfse` com `{"dpsXmlGZipB64": base64(gzip(xml))}`, TLS mútuo com o A1.
 6. **Resposta**: sucesso traz `chaveAcesso` e `nfseXmlGZipB64` (o número da nota sai do `<nNFSe>`); erro traz `erros`
@@ -96,3 +98,12 @@ não permitido para o município, certificado de outro CNPJ.
 
 SemVer. Mudança de leiaute que altera a forma de montar a DPS = versão menor nova; quebra de API = versão maior.
 Para publicar: atualize o `CHANGELOG.md`, faça o commit e crie a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`).
+
+## IBS/CBS (reforma tributária)
+
+O grupo `IBSCBS` da DPS só classifica a operação (`IbsCbs`: cIndOp, CST, cClassTrib, consumo final, compra governamental) e
+lista os repasses (`Reimbursement`). O sistema nacional calcula base, alíquotas e valores e devolve na NFS-e; o
+`SefinClient::ibsCbs()` lê esses campos (`vBC`, `vIBSTot`, `vCBS`, `vTotNF`, alíquotas efetivas) para o `Result`.
+
+Quando a Receita publicar regra nova que a Sefin passe a recusar, mas que dá para prever, inclua em `DpsRules` (com teste):
+o erro aparece em português antes de enviar.

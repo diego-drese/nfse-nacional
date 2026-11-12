@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (2026-11-13)
+
+- Reforma tributária: grupo IBSCBS opcional na DPS (`Dps::$ibsCbs`): classificação (cIndOp, CST, cClassTrib), consumo
+  final, compra governamental e repasses/reembolsos de terceiros com o documento do fornecedor (`Reimbursement`).
+- `Result::$ibsCbs`: base, IBS, CBS, total e alíquotas efetivas calculados pelo sistema nacional, lidos da NFS-e.
+- `DpsRules`: regras que o schema não pega, checadas antes de enviar (código `REGRA`): NBS obrigatório com IBS/CBS,
+  documento e descrição do repasse, soma dos repasses, valor maior que zero.
+- Compatível com a 0.1: tudo novo é opcional.
+
 ## 0.1.1 (2026-11-13)
 
 - Corrige o cancelamento no PHP 8.2 (`mb_str_pad` só existe no 8.3).
