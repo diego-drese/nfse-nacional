@@ -1,0 +1,39 @@
+{
+    "name": "diego-drese/nfse-nacional",
+    "description": "NFS-e Nacional (Sefin Nacional/ADN) em PHP puro: monta e valida a DPS no leiaute oficial, assina com o certificado A1, emite, consulta, cancela e baixa o DANFSe. Sem framework e sem Guzzle.",
+    "keywords": ["nfse", "nfs-e", "nfse-nacional", "nota fiscal", "dps", "sefin", "danfse", "brasil"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {"name": "Diego Drese"}
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-zlib": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5 || ^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DiegoDrese\\NfseNacional\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DiegoDrese\\NfseNacional\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}
