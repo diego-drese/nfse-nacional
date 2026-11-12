@@ -89,9 +89,9 @@ final class DpsXml
         self::add($dom, self::add($dom, $val, 'vServPrest'), 'vServ', number_format($r->amount, 2, '.', ''));
         $trib = self::add($dom, $val, 'trib');
         $mun = self::add($dom, $trib, 'tribMun');
-        self::add($dom, $mun, 'tribISSQN', '1');
+        self::add($dom, $mun, 'tribISSQN', (string) $r->issTaxation);
         self::add($dom, $mun, 'tpRetISSQN', '1');
-        if ($r->issRate !== null) {
+        if ($r->issRate !== null && $r->issTaxation === Dps::ISS_TAXABLE) {
             self::add($dom, $mun, 'pAliq', number_format($r->issRate, 2, '.', ''));
         }
         $tot = self::add($dom, $trib, 'totTrib');

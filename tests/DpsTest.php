@@ -13,6 +13,7 @@ use DiegoDrese\NfseNacional\Dps\Provider;
 use DiegoDrese\NfseNacional\Dps\Taker;
 use DiegoDrese\NfseNacional\Environment;
 use DiegoDrese\NfseNacional\Tests\Support\TestCertificate;
+use DiegoDrese\NfseNacional\Xml\DpsRules;
 use DiegoDrese\NfseNacional\Xml\DpsXml;
 use DiegoDrese\NfseNacional\Xml\SchemaValidator;
 use DiegoDrese\NfseNacional\Xml\XmlSigner;
@@ -65,6 +66,28 @@ final class DpsTest extends TestCase
         $xml = DpsXml::dps($plain);
         $this->assertStringContainsString('<indTotTrib>0</indTotTrib>', $xml);
         $this->assertStringNotContainsString('regApTribSN', $xml, 'Só ME/EPP informa o regime de apuração.');
+    }
+
+    public function test_a_rental_without_iss_goes_as_non_incidence_without_a_rate(): void
+    {
+        [$pfx, $password] = TestCertificate::pfx();
+        $d = self::dps('990101');
+        $rental = new Dps($d->environment, $d->series, $d->number, $d->issuedAt, $d->competence, $d->provider, $d->taker, $d->tribNac,
+            'Locação de veículo sem condutor.', 500.0, 2.01, issTaxation: Dps::ISS_NON_INCIDENCE);
+        $signed = (new XmlSigner(Certificate::fromPfx($pfx, $password)))->sign(DpsXml::dps($rental), 'infDPS');
+
+        $this->assertSame([], SchemaValidator::errors($signed, SchemaValidator::DPS));
+        $this->assertStringContainsString('<tribISSQN>4</tribISSQN>', $signed);
+        $this->assertStringNotContainsString('<pAliq>', $signed, 'Sem incidência de ISS não há alíquota.');
+        $this->assertSame([], DpsRules::errors($rental));
+    }
+
+    public function test_an_unsupported_iss_taxation_is_refused_before_sending(): void
+    {
+        $d = self::dps();
+        $export = new Dps($d->environment, $d->series, $d->number, $d->issuedAt, $d->competence, $d->provider, $d->taker, $d->tribNac, $d->description, 10.0, issTaxation: 3);
+
+        $this->assertNotSame([], DpsRules::errors($export));
     }
 
     public function test_the_cancellation_request_passes_the_official_schema(): void

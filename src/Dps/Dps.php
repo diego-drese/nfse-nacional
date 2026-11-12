@@ -15,6 +15,12 @@ use DiegoDrese\NfseNacional\Environment;
  */
 final readonly class Dps
 {
+    /** tribISSQN 1: operação tributável pelo ISS (padrão). */
+    public const ISS_TAXABLE = 1;
+
+    /** tribISSQN 4: não incidência do ISS (ex.: locação de bem móvel, STF Súmula Vinculante 31). Vai sem alíquota. */
+    public const ISS_NON_INCIDENCE = 4;
+
     public function __construct(
         public Environment $environment,
         public string $series,
@@ -30,6 +36,7 @@ final readonly class Dps
         public ?float $simplesTotalRate = null,
         public ?string $nbs = null,
         public ?IbsCbs $ibsCbs = null,
+        public int $issTaxation = self::ISS_TAXABLE,
     ) {}
 
     /** Id: "DPS" + município (7) + tipo de inscrição (2 = CNPJ) + CNPJ (14) + série (5) + número (15). */

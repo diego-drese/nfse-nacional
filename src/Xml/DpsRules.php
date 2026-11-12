@@ -19,6 +19,9 @@ final class DpsRules
         if ($dps->amount <= 0) {
             $errors[] = 'O valor do serviço tem de ser maior que zero.';
         }
+        if (! in_array($dps->issTaxation, [Dps::ISS_TAXABLE, Dps::ISS_NON_INCIDENCE], true)) {
+            $errors[] = 'Tributação do ISS não suportada: use 1 (tributável) ou 4 (não incidência).';
+        }
         $t = $dps->ibsCbs;
         if ($t !== null) {
             if (empty($dps->nbs)) {

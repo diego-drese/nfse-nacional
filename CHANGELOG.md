@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 (2026-11-12)
+
+- ISS com **não incidência** (`Dps::$issTaxation = Dps::ISS_NON_INCIDENCE`, `tribISSQN = 4`), para operações fora do ISS
+  como a locação de bem móvel (STF Súmula Vinculante 31). Vai sem alíquota (`pAliq`).
+- `DpsRules`: recusa antes de enviar uma tributação de ISS não suportada (só 1 e 4).
+- Compatível com a 0.2: o padrão continua tributável (`tribISSQN = 1`).
+
 ## 0.2.0 (2026-11-13)
 
 - Reforma tributária: grupo IBSCBS opcional na DPS (`Dps::$ibsCbs`): classificação (cIndOp, CST, cClassTrib), consumo

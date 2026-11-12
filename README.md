@@ -96,8 +96,10 @@ $result = $sefin->cancel($accessKey, cnpj: '11222333000181', code: 1, reason: 'V
 | `issRate` | `pAliq` | alíquota de ISS (no Simples muda conforme a faixa de faturamento) |
 | `simplesTotalRate` | `pTotTribSN` | % total do Simples; sem ele a DPS informa `indTotTrib = 0` (não declara) |
 
-O ISS sai como tributável no município do prestador, sem retenção (`tribISSQN = 1`, `tpRetISSQN = 1`). Outros cenários
-(retenção, exportação, imunidade, deduções, IBS/CBS) ainda não estão no `DpsXml`: veja [Limitações](#limitações).
+O ISS sai como tributável no município do prestador, sem retenção (`tribISSQN = 1`, `tpRetISSQN = 1`). Para uma operação
+fora do ISS, como a locação de bem móvel (STF Súmula Vinculante 31), use `issTaxation: Dps::ISS_NON_INCIDENCE`
+(`tribISSQN = 4`, sem alíquota). Outros cenários (retenção, exportação, imunidade, deduções) ainda não estão no `DpsXml`: veja
+[Limitações](#limitações).
 
 ## Reforma tributária: IBS e CBS
 
